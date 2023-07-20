@@ -45,8 +45,26 @@
     (swap! state assoc :active-screen screen-to-switch-to)
     nil))
 
-(def quiz-screen
-  (m/Text "Quiz Screen"))
+
+(defn quiz-screen
+  [quiz-number]
+  (let [[question [correct-answer & _ :as questions]] (nth quiz-questions (dec quiz-number))
+        validate (fn [answer]
+                   (if (= answer correct-answer)
+                     (println "true")
+                     (println "completely false in every way scrub!!")))
+        children (->> (map (fn [a] (m/ElevatedButton
+                                     .onPressed
+                                     (fn [] (validate a) nil)
+                                     .child (m/Text a)))
+                           (shuffle questions))
+                      (cons (m/SizedBox .height 30))
+                      (cons (m/Text question)))]
+
+    (m/Column
+      .children
+      children)))
+
 
 ;(defn styled-text
 ;  [text-to-style]
@@ -120,7 +138,7 @@
          (m.OutlinedButton/styleFrom
            .foregroundColor m.Colors/white)
          .onPressed
-         (switch-screen! quiz-screen)
+         (switch-screen! (quiz-screen 2))
          .icon
          (m/Icon (m.Icons/arrow_right_alt))
          .label
