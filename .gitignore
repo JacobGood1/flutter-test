@@ -36,3 +36,9 @@ linux
 .clojuredart/cache/673ac1d95013758ebf1638fd33dd379a40fbaf67/cljd_helper/
 
 .idea/libraries/
+
+# ClojureDart
+.cpcache/
+.clojuredart/
+lib/cljd-out/
+test/cljd-out/

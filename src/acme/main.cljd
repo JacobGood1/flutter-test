@@ -3,7 +3,12 @@
             [cljd.flutter :as f]))
 
 (declare start-screen)
-(defonce state (atom {:active-screen start-screen}))
+(declare quiz-screen)
+(defonce state
+         (atom
+           {:active-screen start-screen
+            :counter 0
+            :correct-answers 0}))
 
 (def quiz-questions
   [["What are the main building blocks of Flutter UIs?"
@@ -38,25 +43,47 @@
      "By calling updateState()"]]])
 
 
+(defn validate
+  [correct-answer answer]
+  (if (= answer correct-answer)
+    (do (println "true") true)
+    (println "completely false in every way scrub!!")))
 
 (defn switch-screen!
-  [screen-to-switch-to]
+  [correct-answer answer]
   (fn []
-    (swap! state assoc :active-screen screen-to-switch-to)
+    (if (validate correct-answer answer)
+      (do (swap! state update :correct-answers inc)
+          (println "correct answers: " (:correct-answers @state))))
+    (let [{:keys [counter]} @state]
+      (if (= counter (count quiz-questions))
+        (do (swap! state assoc :active-screen start-screen)
+            (swap! state assoc :counter 0))
+        (do
+          (swap! state assoc :active-screen (quiz-screen counter))
+          (swap! state update :counter inc))))
+
     nil))
 
 
+(defn button-elevator
+  [correct-answer]
+  (fn [answer]
+    (m/ElevatedButton
+      .style
+      (m.ElevatedButton/styleFrom
+        .backgroundColor (m.Color/fromARGB 255 33 1 95)
+        .foregroundColor m.Colors/white
+        .shape (m/RoundedRectangleBorder
+                .borderRadius (m.BorderRadius/circular 30.0)))
+      .onPressed
+      (switch-screen! correct-answer answer)
+      .child (m/Text answer))))
+
 (defn quiz-screen
   [quiz-number]
-  (let [[question [correct-answer & _ :as questions]] (nth quiz-questions (dec quiz-number))
-        validate (fn [answer]
-                   (if (= answer correct-answer)
-                     (println "true")
-                     (println "completely false in every way scrub!!")))
-        children (->> (map (fn [a] (m/ElevatedButton
-                                     .onPressed
-                                     (fn [] (validate a) nil)
-                                     .child (m/Text a)))
+  (let [[question [correct-answer & _ :as questions]] (nth quiz-questions quiz-number)
+        children (->> (map (button-elevator correct-answer)
                            (shuffle questions))
                       (cons (m/SizedBox .height 30))
                       (cons (m/Text question)))]
@@ -121,33 +148,35 @@
 ;                       .child (styled-text "Roll the dice!"))]))))
 
 (def start-screen
-  (m/Center
-    .child
-    (m/Column
-      .mainAxisSize m.MainAxisSize/min
-      .children
-      [(m/Image.asset
-         "assets/images/quiz-logo.png"
-         .color
-         (m/Color.fromARGB 150 255 255 255)
-         .width 200.0
-         .height 200.0)
-       (m/SizedBox .height 80)
-       (m/Text "Start Screen"
-               .style
-               (m/TextStyle .color m.Colors/white
-                             .fontSize 24.0))
-       (m/SizedBox .height 30)
-       (m/OutlinedButton.icon
-         .style
-         (m.OutlinedButton/styleFrom
-           .foregroundColor m.Colors/white)
-         .onPressed
-         (switch-screen! (quiz-screen 2))
-         .icon
-         (m/Icon (m.Icons/arrow_right_alt))
-         .label
-         (m/Text "Start the quiz!"))])))
+  (let []
+    (swap! state assoc :score 0)
+    (m/Center
+      .child
+      (m/Column
+        .mainAxisSize m.MainAxisSize/min
+        .children
+        [(m/Image.asset
+           "assets/images/quiz-logo.png"
+           .color
+           (m/Color.fromARGB 150 255 255 255)
+           .width 200.0
+           .height 200.0)
+         (m/SizedBox .height 80)
+         (m/Text "Start Screen"
+                 .style
+                 (m/TextStyle .color m.Colors/white
+                               .fontSize 24.0))
+         (m/SizedBox .height 30)
+         (m/OutlinedButton.icon
+           .style
+           (m.OutlinedButton/styleFrom
+             .foregroundColor m.Colors/white)
+           .onPressed
+           (switch-screen! "not" "=")
+           .icon
+           (m/Icon (m.Icons/arrow_right_alt))
+           .label
+           (m/Text "Start the quiz!"))]))))
 
 (def quiz-logo
   (m/Image.asset
